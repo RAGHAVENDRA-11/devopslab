@@ -1,0 +1,59 @@
+
+pipeline {
+    agent any
+
+    stages {
+        stage('1. Source Checkout') {
+            steps {
+                checkout scm
+                bat 'git log -1 --oneline'
+            }
+        }
+
+        stage('2. Validate HTML') {
+            steps {
+                bat '''
+                    if not exist sample.html exit /b 1
+                    findstr /C:"Jenkins CI/CD Pipeline" sample.html
+                '''
+            }
+        }
+
+        stage('3. Test Source Code') {
+            steps {
+                bat '''
+                    findstr /C:"CI/CD Pipeline Executed Successfully!" sample.html
+                    if errorlevel 1 exit /b 1
+                '''
+            }
+        }
+
+        stage('4. Deploy Application') {
+            steps {
+                bat '''
+                    if not exist C:\\JenkinsDeploy mkdir C:\\JenkinsDeploy
+                    copy /Y sample.html C:\\JenkinsDeploy\\index.html
+                    if errorlevel 1 exit /b 1
+                '''
+            }
+        }
+
+        stage('5. Verify Deployment') {
+            steps {
+                bat '''
+                    if not exist C:\\JenkinsDeploy\\index.html exit /b 1
+                    findstr /C:"Jenkins CI/CD Pipeline" C:\\JenkinsDeploy\\index.html
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SUCCESS: HTML application deployed successfully!'
+        }
+        failure {
+            echo 'FAILED: Check Console Output for the error.'
+        }
+    }
+}
